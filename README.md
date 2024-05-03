@@ -2,227 +2,122 @@
 
 Boids in various languages using raylib.
 
-## 2D Boids Algorithm
+## 2D Boids Algorithm Pseudocode
 
-Yoinked from https://github.com/beneater/boids.
+Yoinked from https://vanhunteradams.com/Pico/Animal_Movement/Boids-algorithm.html#Pseudocode.
 
-```js
-// Size of canvas. These get updated to fill the whole browser.
-let width = 150;
-let height = 150;
+```bash
+# For every boid . . .
+for each boid (boid):
 
-const numBoids = 100;
-const visualRange = 75;
+    # Zero all accumulator variables (can't do this in one line in C)
+    xpos_avg, ypos_avg, xvel_avg, yvel_avg, neighboring_boids, close_dx, close_dy = 0
 
-var boids = [];
+    # For every other boid in the flock . . .
+    for each other boid (otherboid):
 
-function initBoids() {
-  for (var i = 0; i < numBoids; i += 1) {
-    boids[boids.length] = {
-      x: Math.random() * width,
-      y: Math.random() * height,
-      dx: Math.random() * 10 - 5,
-      dy: Math.random() * 10 - 5,
-      history: [],
-    };
-  }
-}
+        # Compute differences in x and y coordinates
+        dx = boid.x - otherboid.x
+        dy = boid.y - otherboid.y
 
-function distance(boid1, boid2) {
-  return Math.sqrt(
-    (boid1.x - boid2.x) * (boid1.x - boid2.x) +
-      (boid1.y - boid2.y) * (boid1.y - boid2.y),
-  );
-}
+        # Are both those differences less than the visual range?
+        if (abs(dx)<visual_range and abs(dy)<visual_range):  
 
-// TODO: This is naive and inefficient.
-function nClosestBoids(boid, n) {
-  // Make a copy
-  const sorted = boids.slice();
-  // Sort the copy by distance from `boid`
-  sorted.sort((a, b) => distance(boid, a) - distance(boid, b));
-  // Return the `n` closest
-  return sorted.slice(1, n + 1);
-}
+            # If so, calculate the squared distance
+            squared_distance = dx*dx + dy*dy
 
-// Called initially and whenever the window resizes to update the canvas
-// size and width/height variables.
-function sizeCanvas() {
-  const canvas = document.getElementById("boids");
-  width = window.innerWidth;
-  height = window.innerHeight;
-  canvas.width = width;
-  canvas.height = height;
-}
+            # Is squared distance less than the protected range?
+            if (squared_distance < protected_range_squared):
 
-// Constrain a boid to within the window. If it gets too close to an edge,
-// nudge it back in and reverse its direction.
-function keepWithinBounds(boid) {
-  const margin = 200;
-  const turnFactor = 1;
+                # If so, calculate difference in x/y-coordinates to nearfield boid
+                close_dx += boid.x - otherboid.x 
+                close_dy += boid.y - otherboid.y
 
-  if (boid.x < margin) {
-    boid.dx += turnFactor;
-  }
-  if (boid.x > width - margin) {
-    boid.dx -= turnFactor
-  }
-  if (boid.y < margin) {
-    boid.dy += turnFactor;
-  }
-  if (boid.y > height - margin) {
-    boid.dy -= turnFactor;
-  }
-}
+            # If not in protected range, is the boid in the visual range?
+            else if (squared_distance < visual_range_squared):
 
-// Find the center of mass of the other boids and adjust velocity slightly to
-// point towards the center of mass.
-function flyTowardsCenter(boid) {
-  const centeringFactor = 0.005; // adjust velocity by this %
+                # Add other boid's x/y-coord and x/y vel to accumulator variables
+                xpos_avg += otherboid.x 
+                ypos_avg += otherboid.y 
+                xvel_avg += otherboid.vx
+                yvel_avg += otherboid.vy
 
-  let centerX = 0;
-  let centerY = 0;
-  let numNeighbors = 0;
+                # Increment number of boids within visual range
+                neighboring_boids += 1 
 
-  for (let otherBoid of boids) {
-    if (distance(boid, otherBoid) < visualRange) {
-      centerX += otherBoid.x;
-      centerY += otherBoid.y;
-      numNeighbors += 1;
-    }
-  }
 
-  if (numNeighbors) {
-    centerX = centerX / numNeighbors;
-    centerY = centerY / numNeighbors;
+    # If there were any boids in the visual range . . .            
+    if (neighboring_boids > 0): 
 
-    boid.dx += (centerX - boid.x) * centeringFactor;
-    boid.dy += (centerY - boid.y) * centeringFactor;
-  }
-}
+        # Divide accumulator variables by number of boids in visual range
+        xpos_avg = xpos_avg/neighboring_boids 
+        ypos_avg = ypos_avg/neighboring_boids
+        xvel_avg = xvel_avg/neighboring_boids
+        yvel_avg = yvel_avg/neighboring_boids
 
-// Move away from other boids that are too close to avoid colliding
-function avoidOthers(boid) {
-  const minDistance = 20; // The distance to stay away from other boids
-  const avoidFactor = 0.05; // Adjust velocity by this %
-  let moveX = 0;
-  let moveY = 0;
-  for (let otherBoid of boids) {
-    if (otherBoid !== boid) {
-      if (distance(boid, otherBoid) < minDistance) {
-        moveX += boid.x - otherBoid.x;
-        moveY += boid.y - otherBoid.y;
-      }
-    }
-  }
+        # Add the centering/matching contributions to velocity
+        boid.vx = (boid.vx + 
+                   (xpos_avg - boid.x)*centering_factor + 
+                   (xvel_avg - boid.vx)*matching_factor)
 
-  boid.dx += moveX * avoidFactor;
-  boid.dy += moveY * avoidFactor;
-}
+        boid.vy = (boid.vy + 
+                   (ypos_avg - boid.y)*centering_factor + 
+                   (yvel_avg - boid.vy)*matching_factor)
 
-// Find the average velocity (speed and direction) of the other boids and
-// adjust velocity slightly to match.
-function matchVelocity(boid) {
-  const matchingFactor = 0.05; // Adjust by this % of average velocity
+    # Add the avoidance contribution to velocity
+    boid.vx = boid.vx + (close_dx*avoidfactor)
+    boid.vy = boid.vy + (close_dy*avoidfactor)
 
-  let avgDX = 0;
-  let avgDY = 0;
-  let numNeighbors = 0;
 
-  for (let otherBoid of boids) {
-    if (distance(boid, otherBoid) < visualRange) {
-      avgDX += otherBoid.dx;
-      avgDY += otherBoid.dy;
-      numNeighbors += 1;
-    }
-  }
+    # If the boid is near an edge, make it turn by turnfactor
+    # (this describes a box, will vary based on boundary conditions)
+    if outside top margin:
+        boid.vy = boid.vy + turnfactor
+    if outside right margin:
+        boid.vx = boid.vx - turnfactor
+    if outside left margin:
+        boid.vx = boid.vx + turnfactor
+    if outside bottom margin:
+        boid.vy = boid.vy - turnfactor
 
-  if (numNeighbors) {
-    avgDX = avgDX / numNeighbors;
-    avgDY = avgDY / numNeighbors;
+    ##############################################################
+    ### ECE 5730 students only - dynamically update bias value ###
+    ##############################################################
+    # biased to right of screen
+    if (boid in scout group 1): 
+        if (boid.vx > 0):
+            boid.biasval = min(maxbias, boid.biasval + bias_increment)
+        else:
+            boid.biasval = max(bias_increment, boid.biasval - bias_increment)
+    # biased to left of screen
+    else if (boid in scout group 2): # biased to left of screen
+        if (boid.vx < 0):
+            boid.biasval = min(maxbias, boid.biasval + bias_increment)
+        else:
+            boid.biasval = max(bias_increment, boid.biasval - bias_increment)
+    ##############################################################
 
-    boid.dx += (avgDX - boid.dx) * matchingFactor;
-    boid.dy += (avgDY - boid.dy) * matchingFactor;
-  }
-}
+    # If the boid has a bias, bias it!
+    # biased to right of screen
+    if (boid in scout group 1):
+        boid.vx = (1 - boid.biasval)*boid.vx + (boid.biasval * 1)
+    # biased to left of screen
+    else if (boid in scout group 2):
+        boid.vx = (1 - boid.biasval)*boid.vx + (boid.biasval * (-1))
 
-// Speed will naturally vary in flocking behavior, but real animals can't go
-// arbitrarily fast.
-function limitSpeed(boid) {
-  const speedLimit = 15;
+    # Calculate the boid's speed
+    # Slow step! Lookup the "alpha max plus beta min" algorithm
+    speed = sqrt(boid.vx*boid.vx + boid.vy*boid.vy)
 
-  const speed = Math.sqrt(boid.dx * boid.dx + boid.dy * boid.dy);
-  if (speed > speedLimit) {
-    boid.dx = (boid.dx / speed) * speedLimit;
-    boid.dy = (boid.dy / speed) * speedLimit;
-  }
-}
+    # Enforce min and max speeds
+    if speed < minspeed:
+        boid.vx = (boid.vx/speed)*minspeed
+        boid.vy = (boid.vy/speed)*minspeed
+    if speed > maxspeed:
+        boid.vx = (boid.vx/speed)*maxspeed
+        boid.vy = (boid.vy/speed)*maxspeed
 
-const DRAW_TRAIL = false;
-
-function drawBoid(ctx, boid) {
-  const angle = Math.atan2(boid.dy, boid.dx);
-  ctx.translate(boid.x, boid.y);
-  ctx.rotate(angle);
-  ctx.translate(-boid.x, -boid.y);
-  ctx.fillStyle = "#558cf4";
-  ctx.beginPath();
-  ctx.moveTo(boid.x, boid.y);
-  ctx.lineTo(boid.x - 15, boid.y + 5);
-  ctx.lineTo(boid.x - 15, boid.y - 5);
-  ctx.lineTo(boid.x, boid.y);
-  ctx.fill();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-  if (DRAW_TRAIL) {
-    ctx.strokeStyle = "#558cf466";
-    ctx.beginPath();
-    ctx.moveTo(boid.history[0][0], boid.history[0][1]);
-    for (const point of boid.history) {
-      ctx.lineTo(point[0], point[1]);
-    }
-    ctx.stroke();
-  }
-}
-
-// Main animation loop
-function animationLoop() {
-  // Update each boid
-  for (let boid of boids) {
-    // Update the velocities according to each rule
-    flyTowardsCenter(boid);
-    avoidOthers(boid);
-    matchVelocity(boid);
-    limitSpeed(boid);
-    keepWithinBounds(boid);
-
-    // Update the position based on the current velocity
-    boid.x += boid.dx;
-    boid.y += boid.dy;
-    boid.history.push([boid.x, boid.y])
-    boid.history = boid.history.slice(-50);
-  }
-
-  // Clear the canvas and redraw all the boids in their current positions
-  const ctx = document.getElementById("boids").getContext("2d");
-  ctx.clearRect(0, 0, width, height);
-  for (let boid of boids) {
-    drawBoid(ctx, boid);
-  }
-
-  // Schedule the next frame
-  window.requestAnimationFrame(animationLoop);
-}
-
-window.onload = () => {
-  // Make sure the canvas always fills the whole window
-  window.addEventListener("resize", sizeCanvas, false);
-  sizeCanvas();
-
-  // Randomly distribute the boids to start
-  initBoids();
-
-  // Schedule the main animation loop
-  window.requestAnimationFrame(animationLoop);
-};
+    # Update boid's position
+    boid.x = boid.x + boid.vx
+    boid.y = boid.y + boid.vy
 ```
