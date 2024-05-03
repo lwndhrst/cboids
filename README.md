@@ -1,6 +1,6 @@
-# odin-vs-c
+# multilingual-boids
 
-Comparing Odin and C performance for a simple flocking simulation using raylib.
+Boids in various languages using raylib.
 
 ## 2D Boids Algorithm
 
