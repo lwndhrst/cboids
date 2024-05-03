@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(c C)
+project(multilingual-boids-c C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_GENERATOR "Unix Makefiles")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

@@ -3,4 +3,4 @@
 cmake -S c -B build -G "Unix Makefiles"
 cmake --build build
 
-odin build odin -out:build\odin.exe
+odin build odin -out:build\multilingual-boids-odin.exe
