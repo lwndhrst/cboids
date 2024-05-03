@@ -6,7 +6,7 @@ Comparing Odin and C performance for a simple flocking simulation using raylib.
 
 Yoinked from https://vanhunteradams.com/Pico/Animal_Movement/Boids-algorithm.html#Pseudocode.
 
-```
+```sh
 # For every boid . . .
 for each boid (boid):
 
