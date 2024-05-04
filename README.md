@@ -4,7 +4,7 @@ Boids in various languages using raylib.
 
 ## 2D Boids Algorithm Pseudocode
 
-Yoinked from https://vanhunteradams.com/Pico/Animal_Movement/Boids-algorithm.html#Pseudocode.
+Yoinked from here: https://vanhunteradams.com/Pico/Animal_Movement/Boids-algorithm.html.
 
 ```bash
 # For every boid . . .

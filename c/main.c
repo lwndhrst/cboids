@@ -140,46 +140,20 @@ run_simulation(Boid boids[], Boid boids_updated[], int num_boids, Params *params
         if (boid->y > screen_height - screen_margin)
             boid_updated->dy -= params->turn_factor;
 
-        // ##############################################################
-        // ### ECE 5730 students only - dynamically update bias value ###
-        // ##############################################################
-        // # biased to right of screen
-        // if (boid in scout group 1):
-        //     if (boid.vx > 0):
-        //         boid.biasval = min(maxbias, boid.biasval + bias_increment)
-        //     else:
-        //         boid.biasval = max(bias_increment, boid.biasval - bias_increment)
-        // # biased to left of screen
-        // else if (boid in scout group 2): # biased to left of screen
-        //     if (boid.vx < 0):
-        //         boid.biasval = min(maxbias, boid.biasval + bias_increment)
-        //     else:
-        //         boid.biasval = max(bias_increment, boid.biasval - bias_increment)
-        // ##############################################################
-        //
-        // # If the boid has a bias, bias it!
-        // # biased to right of screen
-        // if (boid in scout group 1):
-        //     boid.vx = (1 - boid.biasval)*boid.vx + (boid.biasval * 1)
-        // # biased to left of screen
-        // else if (boid in scout group 2):
-        //     boid.vx = (1 - boid.biasval)*boid.vx + (boid.biasval * (-1))
-
         // Calculate the boid's speed
-        // Slow step! Lookup the "alpha max plus beta min" algorithm
-        double speed = sqrt(boid_updated->dx * boid_updated->dx +
-                            boid_updated->dy * boid_updated->dy);
+        double squared_speed = boid_updated->dx * boid_updated->dx +
+                               boid_updated->dy * boid_updated->dy;
 
         //  Enforce min and max speeds
-        if (speed < params->min_speed)
+        if (squared_speed < params->min_speed)
         {
-            boid_updated->dx = (boid_updated->dx / speed) * params->min_speed;
-            boid_updated->dy = (boid_updated->dy / speed) * params->min_speed;
+            boid_updated->dx *= params->min_speed * params->min_speed / squared_speed;
+            boid_updated->dy *= params->min_speed * params->min_speed / squared_speed;
         }
-        if (speed > params->max_speed)
+        if (squared_speed > params->max_speed)
         {
-            boid_updated->dx = (boid_updated->dx / speed) * params->max_speed;
-            boid_updated->dy = (boid_updated->dy / speed) * params->max_speed;
+            boid_updated->dx *= params->max_speed * params->max_speed / squared_speed;
+            boid_updated->dy *= params->max_speed * params->max_speed / squared_speed;
         }
 
         // Update boid's position
