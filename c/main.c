@@ -15,9 +15,6 @@ typedef struct {
     double matching_factor;
     double max_speed;
     double min_speed;
-    double max_bias;
-    double bias_increment;
-    double bias_val;
 } Params;
 
 typedef struct {
@@ -130,7 +127,6 @@ run_simulation(Boid boids[], Boid boids_updated[], int num_boids, Params *params
         boid_updated->dy += accumulator.dy_close * params->avoid_factor;
 
         // If the boid is near an edge, make it turn by turnfactor
-        // (this describes a box, will vary based on boundary conditions)
         if (boid->y < screen_margin)
             boid_updated->dy += params->turn_factor;
         if (boid->x > screen_width - screen_margin)
@@ -185,17 +181,6 @@ main(void)
 
     GuiLoadStyleDefault();
 
-    // Params params = {
-    //     0.2f,    // turn_factor
-    //     40.0f,   // visual_range
-    //     8.0f,    // protected_range
-    //     0.0005f, // centering_factor
-    //     0.05f,   // avoid_factor
-    //     0.05f,   // matching_factor
-    //     6.0f,    // max_speed
-    //     3.0f,    // min_speed
-    // };
-
     Params params = {
         0.2f,    // turn_factor
         40.0f,   // visual_range
@@ -244,7 +229,7 @@ main(void)
     float matching_factor = params.matching_factor;
     float avoid_factor = params.avoid_factor;
 
-    const size_t num_boids = 100;
+    const size_t num_boids = 1000;
     Boid *boids = malloc(2 * num_boids * sizeof(Boid));
     init_boids(boids, num_boids, &params);
 
