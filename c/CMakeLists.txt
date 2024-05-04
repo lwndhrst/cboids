@@ -15,4 +15,5 @@ add_subdirectory(raylib)
 
 # declare project executable
 add_executable(${PROJECT_NAME} main.c)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/raygui/src)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
