@@ -205,7 +205,7 @@ draw_boids(Boid *boids, int num_boids)
 int
 main(void)
 {
-    InitWindow(screen_width, screen_height, "raylib [core] example - basic window");
+    InitWindow(screen_width, screen_height, "Boids in C");
 
     SetTargetFPS(60);
 
