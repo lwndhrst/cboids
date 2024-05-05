@@ -172,30 +172,13 @@ draw_boids(Boid *boids, int num_boids)
     EndDrawing();
 }
 
-int
-main(void)
+void
+draw_gui(Params *params)
 {
-    InitWindow(screen_width, screen_height, "Boids in C");
-
-    SetTargetFPS(60);
-
-    GuiLoadStyleDefault();
-
-    Params params = {
-        0.2f,    // turn_factor
-        40.0f,   // visual_range
-        8.0f,    // protected_range
-        0.0005f, // centering_factor
-        0.05f,   // avoid_factor
-        0.05f,   // matching_factor
-        6.0f,    // max_speed
-        3.0f,    // min_speed
-    };
-
     const int slider_width = 200;
     const int slider_height = 20;
-    const int slider_spacing = slider_height + 10;
-    const int slider_margin = 120;
+    const int slider_margin = 10;
+    const int slider_spacing = slider_height + slider_margin;
 
     const Rectangle visual_range_slider = {
         slider_margin,
@@ -223,13 +206,44 @@ main(void)
         slider_width,
         slider_height};
 
-    float visual_range = params.visual_range;
-    float protected_range = params.protected_range;
-    float centering_factor = params.centering_factor;
-    float matching_factor = params.matching_factor;
-    float avoid_factor = params.avoid_factor;
+    float visual_range = params->visual_range;
+    float protected_range = params->protected_range;
+    float centering_factor = params->centering_factor;
+    float matching_factor = params->matching_factor;
+    float avoid_factor = params->avoid_factor;
 
-    const size_t num_boids = 1000;
+    GuiSlider(visual_range_slider, "", "visual_range", &visual_range, 0.0f, 80.0f);
+    GuiSlider(protected_range_slider, "", "protected_range", &protected_range, 0.0f, 16.0f);
+    GuiSlider(centering_factor_slider, "", "centering_factor", &centering_factor, 0.0f, 0.001f);
+    GuiSlider(matching_factor_slider, "", "matching_factor", &matching_factor, 0.0f, 0.1f);
+    GuiSlider(avoid_factor_slider, "", "avoid_factor", &avoid_factor, 0.0f, 0.1f);
+
+    params->visual_range = visual_range;
+    params->protected_range = protected_range;
+    params->centering_factor = centering_factor;
+    params->matching_factor = matching_factor;
+    params->avoid_factor = avoid_factor;
+}
+
+int
+main(void)
+{
+    InitWindow(screen_width, screen_height, "Boids in C");
+
+    GuiLoadStyleDefault();
+
+    Params params = {
+        0.2f,    // turn_factor
+        40.0f,   // visual_range
+        8.0f,    // protected_range
+        0.0005f, // centering_factor
+        0.05f,   // avoid_factor
+        0.05f,   // matching_factor
+        6.0f,    // max_speed
+        3.0f,    // min_speed
+    };
+
+    const size_t num_boids = 2000;
     Boid *boids = malloc(2 * num_boids * sizeof(Boid));
     init_boids(boids, num_boids, &params);
 
@@ -238,18 +252,7 @@ main(void)
 
     while (!WindowShouldClose())
     {
-        GuiSlider(visual_range_slider, "visual_range ", "", &visual_range, 0.0f, 80.0f);
-        GuiSlider(protected_range_slider, "protected_range ", "", &protected_range, 0.0f, 16.0f);
-        GuiSlider(centering_factor_slider, "centering_factor ", "", &centering_factor, 0.0f, 0.001f);
-        GuiSlider(matching_factor_slider, "matching_factor ", "", &matching_factor, 0.0f, 0.1f);
-        GuiSlider(avoid_factor_slider, "avoid_factor ", "", &avoid_factor, 0.0f, 0.1f);
-
-        params.visual_range = visual_range;
-        params.protected_range = protected_range;
-        params.centering_factor = centering_factor;
-        params.matching_factor = matching_factor;
-        params.avoid_factor = avoid_factor;
-
+        draw_gui(&params);
         run_simulation(boids_current, boids_updated, num_boids, &params, 50.0f * GetFrameTime());
         draw_boids(boids_updated, num_boids);
 
