@@ -5,6 +5,7 @@ set(CMAKE_GENERATOR "Unix Makefiles")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
+    -fopenmp
     $<$<CONFIG:RELEASE>:-O2>
 )
 
@@ -17,3 +18,6 @@ add_subdirectory(raylib)
 add_executable(${PROJECT_NAME} main.c)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/raygui/src)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+
+find_package(OpenMP REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE libomp)

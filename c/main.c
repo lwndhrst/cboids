@@ -5,9 +5,11 @@
 #include "raygui.h"
 
 #include <math.h>
+#include <omp.h>
 #include <stdlib.h>
 
 #define GLSL_VERSION 330
+#define OMP_THREADS 1
 
 typedef struct {
     double turn_factor;
@@ -60,6 +62,7 @@ run_simulation(Boid boids[],
                double delta_time)
 {
     // For every boid . . .
+    #pragma omp parallel for num_threads(OMP_THREADS)
     for (int i = 0; i < num_boids; ++i)
     {
         Boid *boid = &boids[i];
@@ -204,7 +207,6 @@ draw_boids(Camera3D *camera,
            Mesh *mesh,
            Material *material,
            Matrix *transforms,
-           Boid *boids,
            int num_boids)
 {
     BeginDrawing();
@@ -306,8 +308,25 @@ main(void)
 
     Matrix *transforms = malloc(num_boids * sizeof(Matrix));
 
-    Shader shader = LoadShader(TextFormat("c/shader.vert", GLSL_VERSION),
-                               TextFormat("c/shader.frag", GLSL_VERSION));
+    const char *vert =
+        "in vec3 vertexPosition;"
+        "in mat4 instanceTransform;"
+        "uniform mat4 mvp;"
+        "void main()"
+        "{"
+        "    gl_Position = mvp * instanceTransform * vec4(vertexPosition, 1.0);"
+        "}";
+
+    const char *frag =
+        "out vec4 fragColor;"
+        "void main()"
+        "{"
+        "    fragColor = vec4(0.4, 0.6, 0.7, 1.0);"
+        "}";
+
+    Shader shader = LoadShaderFromMemory(vert, frag);
+    // Shader shader = LoadShader(TextFormat("c/shader.vert", GLSL_VERSION),
+    //                            TextFormat("c/shader.frag", GLSL_VERSION));
 
     shader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(shader, "mvp");
     shader.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(shader, "instanceTransform");
@@ -330,7 +349,6 @@ main(void)
                    &mesh,
                    &material,
                    transforms,
-                   boids_updated,
                    num_boids);
 
         boids_current = boids_current == boids ? boids + num_boids : boids;
