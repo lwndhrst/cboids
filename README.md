@@ -14,6 +14,7 @@ https://github.com/lwndhrst/multilingual-boids/assets/22763666/ea91f62e-f5d5-4e2
 
 - Spatial partitioning for faster simulation loop? Maybe hashed spatial grid?
 - Lighting?
+- Ditch Raylib for SDL + Vulkan?
 
 ## 2D Boids Algorithm Pseudocode
 
