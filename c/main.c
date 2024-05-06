@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #define GLSL_VERSION 330
-#define OMP_THREADS 1
+#define OMP_THREADS 4
 
 typedef struct {
     double turn_factor;
@@ -61,8 +61,8 @@ run_simulation(Boid boids[],
                Params *params,
                double delta_time)
 {
-    // For every boid . . .
-    #pragma omp parallel for num_threads(OMP_THREADS)
+// For every boid . . .
+#pragma omp parallel for num_threads(OMP_THREADS)
     for (int i = 0; i < num_boids; ++i)
     {
         Boid *boid = &boids[i];
@@ -198,7 +198,14 @@ run_simulation(Boid boids[],
         boid_updated->z = boid->z + boid_updated->dz * delta_time;
 
         // Update boid's transform for instanced drawing
-        transforms[i] = MatrixTranslate(boid_updated->x, boid_updated->y, boid_updated->z);
+        const Vector3 default_direction = {0.0f, 1.0f, 0.0f};
+        Vector3 direction = Vector3Normalize((Vector3){boid_updated->dx, boid_updated->dy, boid_updated->dz});
+        Vector3 axis = Vector3CrossProduct(default_direction, direction);
+        float angle = Vector3Angle(default_direction, direction);
+        Matrix rotate = MatrixRotate(axis, angle);
+        Matrix translate = MatrixTranslate(boid_updated->x, boid_updated->y, boid_updated->z);
+
+        transforms[i] = MatrixMultiply(rotate, translate);
     }
 }
 
@@ -229,6 +236,11 @@ draw_gui(Params *params)
     const int slider_margin = 10;
     const int slider_spacing = slider_height + slider_margin;
 
+    const Rectangle turn_factor_slider = {
+        slider_margin,
+        screen_height - slider_spacing * 6,
+        slider_width,
+        slider_height};
     const Rectangle visual_range_slider = {
         slider_margin,
         screen_height - slider_spacing * 5,
@@ -255,18 +267,21 @@ draw_gui(Params *params)
         slider_width,
         slider_height};
 
+    float turn_factor = params->turn_factor;
     float visual_range = params->visual_range;
     float protected_range = params->protected_range;
     float centering_factor = params->centering_factor;
     float matching_factor = params->matching_factor;
     float avoid_factor = params->avoid_factor;
 
+    GuiSlider(turn_factor_slider, "", "turn_factor", &turn_factor, 0.0f, 0.2f);
     GuiSlider(visual_range_slider, "", "visual_range", &visual_range, 0.0f, 80.0f);
     GuiSlider(protected_range_slider, "", "protected_range", &protected_range, 0.0f, 16.0f);
     GuiSlider(centering_factor_slider, "", "centering_factor", &centering_factor, 0.0f, 0.001f);
     GuiSlider(matching_factor_slider, "", "matching_factor", &matching_factor, 0.0f, 0.1f);
     GuiSlider(avoid_factor_slider, "", "avoid_factor", &avoid_factor, 0.0f, 0.1f);
 
+    params->turn_factor = turn_factor;
     params->visual_range = visual_range;
     params->protected_range = protected_range;
     params->centering_factor = centering_factor;
@@ -279,8 +294,10 @@ main(void)
 {
     InitWindow(screen_width, screen_height, "Boids in C");
 
+    SetTargetFPS(60);
+
     Params params = {
-        0.2f,    // turn_factor
+        0.1f,    // turn_factor
         40.0f,   // visual_range
         8.0f,    // protected_range
         0.0005f, // centering_factor
@@ -304,7 +321,7 @@ main(void)
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    Mesh mesh = GenMeshCube(2.0f, 2.0f, 2.0f);
+    Mesh mesh = GenMeshCone(1.0f, 4.0f, 3);
 
     Matrix *transforms = malloc(num_boids * sizeof(Matrix));
 
