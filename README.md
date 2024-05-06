@@ -1,8 +1,21 @@
-# multilingual-boids
+# cboids
 
-Boids in various languages using raylib.
+Boids with C and Raylib.
+
+This is meant as a fun practice project to try out and learn a bunch of stuff.
 
 https://github.com/lwndhrst/multilingual-boids/assets/22763666/ea91f62e-f5d5-4e29-bdb8-a615274d425c
+
+## Implemented
+
+- 3D boids
+- Instanced rendering
+- Multi-threaded simulation loop using OpenMP
+
+## TODO
+
+- Spatial partitioning for faster simulation loop? Maybe hashed spatial grid?
+- Lighting?
 
 ## 2D Boids Algorithm Pseudocode
 

@@ -1,8 +1,8 @@
 [submodule "c/raylib"]
-	path = c/raylib
+	path = vendor/raylib
 	url = https://github.com/raysan5/raylib
 	branch = 5.0
 [submodule "c/raygui"]
-	path = c/raygui
+	path = vendor/raygui
 	url = https://github.com/raysan5/raygui
 	branch = 4.0
