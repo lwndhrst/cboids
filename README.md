@@ -1,8 +1,6 @@
 # cboids
 
-Boids with C and Raylib.
-
-This is meant as a fun practice project to try out and learn a bunch of stuff.
+Boids with C and Raylib. This is meant as a fun project to try out and learn a bunch of stuff.
 
 https://github.com/lwndhrst/multilingual-boids/assets/22763666/ea91f62e-f5d5-4e29-bdb8-a615274d425c
 
