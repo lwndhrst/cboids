@@ -1,26 +1,32 @@
 #pragma once
 
-#include "boids.h"
-
-#include <stdint.h>
-
-typedef struct {
-    size_t max_x, max_y, max_z;
-    size_t cell_size;
-    uintptr_t *data; // This will just store pointers into the original boid array
-} SpatialHashGrid;
-
-void init_grid(SpatialHashGrid *grid,
-               size_t max_x,
-               size_t max_y,
-               size_t max_z,
-               size_t cell_size,
-               size_t num_boids);
-
-// NOTE: If simulation loop stays multi-threaded, probably need to lock here
-void insert_into_grid(SpatialHashGrid *grid, Boid *boid);
-
-// NOTE: If simulation loop stays multi-threaded, probably need to lock here
-void update_grid(SpatialHashGrid *grid, Boid *boid);
-
-void find_nearby(SpatialHashGrid *grid, Boid *boid, double range);
+/**
+ * thoughts on how i want to implement this
+ * =================================================
+ *
+ * - every thread in the simulation loop will have
+ *   its own hash grid to avoid race conditions
+ * - similarly to how the boid array is handled,
+ *   hash grids will be "double-buffered"
+ * - there will be one grid from the previous
+ *   iteration, that will only be read from, and
+ *   one grid for the next iteration, that will
+ *   only be written to (per thread)
+ *
+ * - the hash grid itself will map x/y/z coordinates
+ *   to a list of elements that are within a cell
+ * - since the maximum possible number of elements
+ *   is known, all list items will be stored in a
+ *   single stack which can be cleared during
+ *   every iteration of the loop
+ * - clearing the stack and reconstructing the
+ *   buckets every iteration should be easier than
+ *   updating the lists as it doesn't require
+ *   searching for elements
+ * - the lists of items belonging to the same cell
+ *   will be constructed incrementally on the stack
+ * - querying the hash grid with x/y/z coordinates
+ *   will simply return the head of the associated
+ *   list, potentially combining lists from all
+ *   cells within a given range
+ */
