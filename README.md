@@ -12,7 +12,7 @@ https://github.com/lwndhrst/cboids/assets/22763666/07c8f99b-0e11-4702-8c24-84915
 
 ## TODO
 
-- Spatial partitioning for faster simulation loop? Maybe hashed spatial grid?
+- Spatial partitioning for faster simulation loop? Maybe spatial grid?
 - Lighting?
 - Ditch Raylib for SDL + Vulkan?
 
