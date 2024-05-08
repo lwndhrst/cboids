@@ -30,3 +30,47 @@
  *   list, potentially combining lists from all
  *   cells within a given range
  */
+
+typedef struct {
+    void *data; // Data associated with this node
+    void *next; // Next cell node in the list
+} GridCellNode;
+
+typedef struct {
+    GridCellNode *head; // Head of list of cell nodes
+    GridCellNode *tail; // Tail of list of cell nodes
+} GridCell;
+
+typedef struct {
+    double x_max, y_max, z_max;
+    double cell_size;
+
+    size_t num_nodes;    // Stack size
+    GridCellNode *nodes; // Stack for incrementally building lists per cell
+
+    size_t num_cells; // Number of cells in the grid
+    GridCell *cells;  // Flat 3D array for storing cells
+} Grid;
+
+void grid_init(Grid *grid,
+               double x_max,
+               double y_max,
+               double z_max,
+               double cell_size,
+               size_t num_items);
+
+void grid_destroy(Grid *grid);
+
+void grid_insert(Grid *grid,
+                 void *data,
+                 double x,
+                 double y,
+                 double z);
+
+GridCellNode *grind_find_in_range(Grid *grid,
+                                  double x,
+                                  double y,
+                                  double z,
+                                  double range);
+
+void grid_clear(Grid *grid);
