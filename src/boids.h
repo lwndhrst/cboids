@@ -18,13 +18,5 @@ typedef struct {
     double dx, dy, dz;
 } Boid;
 
-void init_boids(Boid *boids,
-                int num_boids,
-                Params *params);
-
-void run_simulation(Boid boids[],
-                    Boid boids_updated[],
-                    Matrix *transforms,
-                    int num_boids,
-                    Params *params,
-                    double delta_time);
+void init_boids(Boid *boids, int num_boids, Params *params);
+void run_simulation(Boid boids[], Boid boids_updated[], Matrix *transforms, int num_boids, Params *params, double delta_time);

@@ -4,6 +4,7 @@
 #include "raygui.h"
 
 #include "boids.h"
+#include "grid.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -93,9 +94,16 @@ draw_gui(Params *params)
     params->avoid_factor = avoid_factor;
 }
 
+void
+test_grid()
+{
+}
+
 int
 main(void)
 {
+    test_grid();
+
     InitWindow(screen_width, screen_height, "Boids in C");
 
     SetTargetFPS(60);
