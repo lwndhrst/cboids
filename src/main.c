@@ -97,6 +97,60 @@ draw_gui(Params *params)
 void
 test_grid()
 {
+    const size_t num_items = 100;
+    size_t item_values[num_items];
+
+    Grid grid;
+    grid_init(&grid, num_items, num_items, num_items, 10, num_items);
+
+    printf("\nPopulating grid...\n\n");
+
+    for (int i = 0; i < num_items; ++i)
+    {
+        item_values[i] = i;
+        grid_insert(&grid, &item_values[i], i, i, i);
+
+        GridKey key = get_grid_key(&grid, i, i, i);
+        printf("key(%d, %d, %d): (%zu, %zu, %zu)\n", i, i, i, key.i, key.j, key.k);
+    }
+
+    printf("\nGrid populated...\n\n");
+
+    for (int i = 0; i < num_items; i += 10)
+    {
+        GridKey key = get_grid_key(&grid, i, i, i);
+        GridCell *cell = get_grid_cell(&grid, key);
+
+        printf("cell[%zu, %zu, %zu]:", key.i, key.j, key.k);
+        for (GridCellNode *node = cell->head;
+             node != NULL;
+             node = node->next)
+        {
+            printf(" %zu", *(size_t *)(node->data));
+        }
+        printf("\n");
+    }
+
+    grid_clear(&grid);
+
+    printf("\nGrid cleared...\n\n");
+
+    for (int i = 0; i < num_items; i += 10)
+    {
+        GridKey key = get_grid_key(&grid, i, i, i);
+        GridCell *cell = get_grid_cell(&grid, key);
+
+        printf("cell[%zu, %zu, %zu]:", key.i, key.j, key.k);
+        for (GridCellNode *node = cell->head;
+             node != NULL;
+             node = node->next)
+        {
+            printf(" %zu", *(size_t *)(node->data));
+        }
+        printf("\n");
+    }
+
+    printf("\n");
 }
 
 int
