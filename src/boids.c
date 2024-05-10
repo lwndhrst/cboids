@@ -3,101 +3,159 @@
 #include "raymath.h"
 
 #include <omp.h>
+#include <stdio.h>
 
-#define OMP_THREADS 4
-
-const double x_min = -50.0f;
-const double x_max = 50.0f;
-const double y_min = -50.0f;
-const double y_max = 50.0f;
-const double z_min = 200.0f;
-const double z_max = 300.0f;
+typedef struct {
+    double x_avg, y_avg, z_avg;
+    double dx_avg, dy_avg, dz_avg;
+    size_t neighboring_boids;
+    double dx_close, dy_close, dz_close;
+} Accumulator;
 
 void
-init_boids(Boid *boids, int num_boids, Params *params)
+boids_init(SimulationData *data, SimulationData *data_updated, int num_boids, Params *params)
 {
-    for (int i = 0; i < num_boids; ++i)
-    {
-        Boid *boid = &boids[i];
+    data->boids = malloc(2 * num_boids * sizeof(Boid));
+    data_updated->boids = malloc(2 * num_boids * sizeof(Boid));
 
-        boid->x = (double)GetRandomValue(x_min, x_max);
-        boid->y = (double)GetRandomValue(y_min, x_max);
-        boid->z = (double)GetRandomValue(z_min, z_max);
+    double cell_size = params->visual_range * 1.01f;
+
+    for (size_t i = 0; i < BOIDS_OMP_THREADS; ++i)
+    {
+        grid_init(&data->grids[i], BOIDS_X_MAX, BOIDS_Y_MAX, BOIDS_Z_MAX, cell_size, num_boids);
+        grid_init(&data_updated->grids[i], BOIDS_X_MAX, BOIDS_Y_MAX, BOIDS_Z_MAX, cell_size, num_boids);
+    }
+
+    for (size_t i = 0; i < num_boids; ++i)
+    {
+        Boid *boid = &data->boids[i];
+        boid->x = (double)GetRandomValue(BOIDS_X_MIN, BOIDS_X_MAX);
+        boid->y = (double)GetRandomValue(BOIDS_Y_MIN, BOIDS_Y_MAX);
+        boid->z = (double)GetRandomValue(BOIDS_Z_MIN, BOIDS_Z_MAX);
         boid->dx = (double)GetRandomValue(0, params->max_speed);
         boid->dy = (double)GetRandomValue(0, params->max_speed);
         boid->dz = (double)GetRandomValue(0, params->max_speed);
+
+        grid_insert(&data->grids[i % BOIDS_OMP_THREADS], boid, boid->x, boid->y, boid->z);
     }
 }
 
 void
-run_simulation(Boid boids[],
-               Boid boids_updated[],
-               Matrix *transforms,
-               int num_boids,
-               Params *params,
-               double delta_time)
+boids_destroy(SimulationData *data, SimulationData *data_updated)
 {
-// For every boid . . .
-#pragma omp parallel for num_threads(OMP_THREADS)
-    for (int i = 0; i < num_boids; ++i)
+    for (size_t i = 0; i < BOIDS_OMP_THREADS; ++i)
     {
-        Boid *boid = &boids[i];
-        Boid *boid_updated = &boids_updated[i];
+        grid_destroy(&data->grids[i]);
+        grid_destroy(&data_updated->grids[i]);
+    }
+
+    free(data->boids);
+    free(data_updated->boids);
+}
+
+void
+boids_compute_cell(GridCellNode *nearby_boid,
+                   Boid *boid,
+                   Params *params,
+                   Accumulator *accumulator)
+{
+    for (; nearby_boid != NULL; nearby_boid = nearby_boid->next)
+    {
+        if (nearby_boid->data == boid)
+        {
+            continue;
+        }
+
+        Boid *other_boid = nearby_boid->data;
+
+        // Compute differences in x, y and z coordinates
+        double dx = boid->x - other_boid->x;
+        double dy = boid->y - other_boid->y;
+        double dz = boid->z - other_boid->z;
+
+        if (fabs(dx) > params->visual_range ||
+            fabs(dy) > params->visual_range ||
+            fabs(dz) > params->visual_range)
+        {
+            continue;
+        }
+
+        double squared_distance = dx * dx + dy * dy + dz * dz;
+
+        // Is squared distance less than the protected range?
+        if (squared_distance < params->protected_range * params->protected_range)
+        {
+            // If so, calculate difference in x/y/z-coordinates to nearfield boid
+            accumulator->dx_close += boid->x - other_boid->x;
+            accumulator->dy_close += boid->y - other_boid->y;
+            accumulator->dz_close += boid->z - other_boid->z;
+        }
+
+        // If not in protected range, is the boid in the visual range?
+        else if (squared_distance < params->visual_range * params->visual_range)
+        {
+            // Add other boid's x/y/z-coord and x/y/z vel to accumulator variables
+            accumulator->x_avg += other_boid->x;
+            accumulator->y_avg += other_boid->y;
+            accumulator->z_avg += other_boid->z;
+            accumulator->dx_avg += other_boid->dx;
+            accumulator->dy_avg += other_boid->dy;
+            accumulator->dz_avg += other_boid->dz;
+
+            // Increment number of boids within visual range
+            ++accumulator->neighboring_boids;
+        }
+    }
+}
+
+void
+boids_run(SimulationData *data,
+          SimulationData *data_updated,
+          Matrix *transforms,
+          int num_boids,
+          Params *params,
+          double delta_time)
+{
+    // Clear grids for the next iteration, they are fully rebuilt every time
+    for (size_t t = 0; t < BOIDS_OMP_THREADS; ++t)
+    {
+        grid_clear(&data_updated->grids[t]);
+    }
+
+// For every boid . . .
+#pragma omp parallel for num_threads(BOIDS_OMP_THREADS)
+    for (size_t i = 0; i < num_boids; ++i)
+    {
+        size_t thread_idx = omp_get_thread_num();
+
+        Boid *boid = &data->boids[i];
+        Boid *boid_updated = &data_updated->boids[i];
 
         // Zero all accumulator variables
-        struct {
-            double x_avg, y_avg, z_avg;
-            double dx_avg, dy_avg, dz_avg;
-            size_t neighboring_boids;
-            double dx_close, dy_close, dz_close;
-        } accumulator = {0};
+        Accumulator accumulator = {0};
 
-        // For every other boid in the flock . . .
-        for (int j = 0; j < num_boids; ++j)
+        // Compute other boids that are potentially in range . . .
+        GridKey key_min = grid_get_key(&data->grids[thread_idx],
+                                       boid->x - params->visual_range,
+                                       boid->y - params->visual_range,
+                                       boid->z - params->visual_range);
+        GridKey key_max = grid_get_key(&data->grids[thread_idx],
+                                       boid->x + params->visual_range,
+                                       boid->y + params->visual_range,
+                                       boid->z + params->visual_range);
+
+        for (size_t t = 0; t < BOIDS_OMP_THREADS; ++t)
         {
-            if (i == j)
+            for (size_t i = key_min.i; i <= key_max.i; ++i)
             {
-                continue;
-            }
-
-            Boid *other_boid = &boids[j];
-
-            // Compute differences in x, y and z coordinates
-            double dx = boid->x - other_boid->x;
-            double dy = boid->y - other_boid->y;
-            double dz = boid->z - other_boid->z;
-
-            if (fabs(dx) > params->visual_range ||
-                fabs(dy) > params->visual_range ||
-                fabs(dz) > params->visual_range)
-            {
-                continue;
-            }
-
-            double squared_distance = dx * dx + dy * dy + dz * dz;
-
-            // Is squared distance less than the protected range?
-            if (squared_distance < params->protected_range * params->protected_range)
-            {
-                // If so, calculate difference in x/y/z-coordinates to nearfield boid
-                accumulator.dx_close += boid->x - other_boid->x;
-                accumulator.dy_close += boid->y - other_boid->y;
-                accumulator.dz_close += boid->z - other_boid->z;
-            }
-
-            // If not in protected range, is the boid in the visual range?
-            else if (squared_distance < params->visual_range * params->visual_range)
-            {
-                // Add other boid's x/y/z-coord and x/y/z vel to accumulator variables
-                accumulator.x_avg += other_boid->x;
-                accumulator.y_avg += other_boid->y;
-                accumulator.z_avg += other_boid->z;
-                accumulator.dx_avg += other_boid->dx;
-                accumulator.dy_avg += other_boid->dy;
-                accumulator.dz_avg += other_boid->dz;
-
-                // Increment number of boids within visual range
-                ++accumulator.neighboring_boids;
+                for (size_t j = key_min.j; j <= key_max.j; ++j)
+                {
+                    for (size_t k = key_min.k; k <= key_max.k; ++k)
+                    {
+                        GridCell *cell = grid_get_cell(&data->grids[t], (GridKey){i, j, k});
+                        boids_compute_cell(cell->head, boid, params, &accumulator);
+                    }
+                }
             }
         }
 
@@ -136,17 +194,17 @@ run_simulation(Boid boids[],
         boid_updated->dz += accumulator.dz_close * params->avoid_factor;
 
         // If the boid is near a boundary, make it turn by turnfactor
-        if (boid->x < x_min)
+        if (boid->x < BOIDS_X_MIN)
             boid_updated->dx += params->turn_factor;
-        if (boid->x > x_max)
+        if (boid->x > BOIDS_X_MAX)
             boid_updated->dx -= params->turn_factor;
-        if (boid->y < y_min)
+        if (boid->y < BOIDS_Y_MIN)
             boid_updated->dy += params->turn_factor;
-        if (boid->y > y_max)
+        if (boid->y > BOIDS_Y_MAX)
             boid_updated->dy -= params->turn_factor;
-        if (boid->z < z_min)
+        if (boid->z < BOIDS_Z_MIN)
             boid_updated->dz += params->turn_factor;
-        if (boid->z > z_max)
+        if (boid->z > BOIDS_Z_MAX)
             boid_updated->dz -= params->turn_factor;
 
         // Calculate the boid's speed
@@ -173,6 +231,9 @@ run_simulation(Boid boids[],
         boid_updated->y = boid->y + boid_updated->dy * delta_time;
         boid_updated->z = boid->z + boid_updated->dz * delta_time;
 
+        // Update grid for the next iteration
+        grid_insert(&data_updated->grids[thread_idx], boid_updated, boid_updated->x, boid_updated->y, boid_updated->z);
+
         // Update boid's transform for instanced drawing
         const Vector3 default_direction = {0.0f, 1.0f, 0.0f};
         Vector3 direction = Vector3Normalize((Vector3){boid_updated->dx, boid_updated->dy, boid_updated->dz});
@@ -183,4 +244,24 @@ run_simulation(Boid boids[],
 
         transforms[i] = MatrixMultiply(rotate, translate);
     }
+}
+
+void
+boids_draw(Camera3D *camera,
+           Mesh *mesh,
+           Material *material,
+           Matrix *transforms,
+           int num_boids)
+{
+    BeginDrawing();
+
+    ClearBackground(RAYWHITE);
+
+    BeginMode3D(*camera);
+    DrawMeshInstanced(*mesh, *material, transforms, num_boids);
+    EndMode3D();
+
+    DrawFPS(10, 10);
+
+    EndDrawing();
 }

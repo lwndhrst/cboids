@@ -6,25 +6,25 @@
 #define clamp(val, lo, hi) (max(lo, min(val, hi)))
 
 GridKey
-get_grid_key(Grid *grid, double x, double y, double z)
+grid_get_key(Grid *grid, double x, double y, double z)
 {
     x = clamp(x, 0, grid->x_max);
     y = clamp(y, 0, grid->y_max);
     z = clamp(z, 0, grid->z_max);
 
     size_t i = x / grid->cell_size;
-    size_t j = x / grid->cell_size;
-    size_t k = x / grid->cell_size;
+    size_t j = y / grid->cell_size;
+    size_t k = z / grid->cell_size;
 
     return (GridKey){i, j, k};
 }
 
 GridCell *
-get_grid_cell(Grid *grid, GridKey key)
+grid_get_cell(Grid *grid, GridKey key)
 {
     size_t idx = key.i +
-                 key.j * grid->num_cells_x +
-                 key.k * grid->num_cells_x * grid->num_cells_y;
+                 key.j * grid->num_cells_i +
+                 key.k * grid->num_cells_i * grid->num_cells_j;
 
     return &grid->cells[idx];
 }
@@ -47,10 +47,10 @@ grid_init(Grid *grid,
     grid->nodes = malloc(grid->num_nodes * sizeof(GridCellNode));
     grid->nodes_top = grid->nodes;
 
-    grid->num_cells_x = (size_t)(x_max / cell_size) + 1;
-    grid->num_cells_y = (size_t)(y_max / cell_size) + 1;
-    grid->num_cells_z = (size_t)(z_max / cell_size) + 1;
-    grid->num_cells = grid->num_cells_x * grid->num_cells_y * grid->num_cells_z;
+    grid->num_cells_i = (size_t)(x_max / cell_size) + 1;
+    grid->num_cells_j = (size_t)(y_max / cell_size) + 1;
+    grid->num_cells_k = (size_t)(z_max / cell_size) + 1;
+    grid->num_cells = grid->num_cells_i * grid->num_cells_j * grid->num_cells_k;
     grid->cells = malloc(grid->num_cells * sizeof(GridCell));
     memset(grid->cells, 0, grid->num_cells * sizeof(GridCell));
 }
@@ -69,8 +69,8 @@ grid_insert(Grid *grid,
             double y,
             double z)
 {
-    GridKey key = get_grid_key(grid, x, y, z);
-    GridCell *cell = get_grid_cell(grid, key);
+    GridKey key = grid_get_key(grid, x, y, z);
+    GridCell *cell = grid_get_cell(grid, key);
 
     GridCellNode *node = grid->nodes_top;
     node->data = data;

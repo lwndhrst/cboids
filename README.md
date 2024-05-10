@@ -8,11 +8,11 @@ https://github.com/lwndhrst/cboids/assets/22763666/07c8f99b-0e11-4702-8c24-84915
 
 - 3D boids
 - Instanced rendering
-- Multi-threaded simulation loop using OpenMP
+- Spatial hash grid
+- Multi-threaded simulation loop with OpenMP
 
 ## TODO
 
-- Spatial partitioning for faster simulation loop? Maybe spatial grid?
 - Lighting?
 - Ditch Raylib for SDL + Vulkan?
 

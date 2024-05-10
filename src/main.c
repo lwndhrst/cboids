@@ -4,7 +4,6 @@
 #include "raygui.h"
 
 #include "boids.h"
-#include "grid.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -13,25 +12,6 @@
 
 const int screen_width = 1600;
 const int screen_height = 900;
-
-void
-draw_boids(Camera3D *camera,
-           Mesh *mesh,
-           Material *material,
-           Matrix *transforms,
-           int num_boids)
-{
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-
-    BeginMode3D(*camera);
-    DrawMeshInstanced(*mesh, *material, transforms, num_boids);
-    EndMode3D();
-
-    DrawFPS(10, 10);
-
-    EndDrawing();
-}
 
 void
 draw_gui(Params *params)
@@ -94,70 +74,9 @@ draw_gui(Params *params)
     params->avoid_factor = avoid_factor;
 }
 
-void
-test_grid()
-{
-    const size_t num_items = 100;
-    size_t item_values[num_items];
-
-    Grid grid;
-    grid_init(&grid, num_items, num_items, num_items, 10, num_items);
-
-    printf("\nPopulating grid...\n\n");
-
-    for (int i = 0; i < num_items; ++i)
-    {
-        item_values[i] = i;
-        grid_insert(&grid, &item_values[i], i, i, i);
-
-        GridKey key = get_grid_key(&grid, i, i, i);
-        printf("key(%d, %d, %d): (%zu, %zu, %zu)\n", i, i, i, key.i, key.j, key.k);
-    }
-
-    printf("\nGrid populated...\n\n");
-
-    for (int i = 0; i < num_items; i += 10)
-    {
-        GridKey key = get_grid_key(&grid, i, i, i);
-        GridCell *cell = get_grid_cell(&grid, key);
-
-        printf("cell[%zu, %zu, %zu]:", key.i, key.j, key.k);
-        for (GridCellNode *node = cell->head;
-             node != NULL;
-             node = node->next)
-        {
-            printf(" %zu", *(size_t *)(node->data));
-        }
-        printf("\n");
-    }
-
-    grid_clear(&grid);
-
-    printf("\nGrid cleared...\n\n");
-
-    for (int i = 0; i < num_items; i += 10)
-    {
-        GridKey key = get_grid_key(&grid, i, i, i);
-        GridCell *cell = get_grid_cell(&grid, key);
-
-        printf("cell[%zu, %zu, %zu]:", key.i, key.j, key.k);
-        for (GridCellNode *node = cell->head;
-             node != NULL;
-             node = node->next)
-        {
-            printf(" %zu", *(size_t *)(node->data));
-        }
-        printf("\n");
-    }
-
-    printf("\n");
-}
-
 int
 main(void)
 {
-    test_grid();
-
     InitWindow(screen_width, screen_height, "Boids in C");
 
     SetTargetFPS(60);
@@ -174,11 +93,8 @@ main(void)
     };
 
     const size_t num_boids = 2000;
-    Boid *boids = malloc(2 * num_boids * sizeof(Boid));
-    init_boids(boids, num_boids, &params);
-
-    Boid *boids_current = boids;
-    Boid *boids_updated = boids + num_boids;
+    SimulationData data_current, data_updated;
+    boids_init(&data_current, &data_updated, num_boids, &params);
 
     Camera3D camera = {0};
     camera.position = (Vector3){0.0f, 0.0f, 0.0f};
@@ -221,24 +137,25 @@ main(void)
     {
         draw_gui(&params);
 
-        run_simulation(boids_current,
-                       boids_updated,
-                       transforms,
-                       num_boids,
-                       &params,
-                       50.0f * GetFrameTime());
+        boids_run(&data_current,
+                  &data_updated,
+                  transforms,
+                  num_boids,
+                  &params,
+                  50.0f * GetFrameTime());
 
-        draw_boids(&camera,
+        boids_draw(&camera,
                    &mesh,
                    &material,
                    transforms,
                    num_boids);
 
-        boids_current = boids_current == boids ? boids + num_boids : boids;
-        boids_updated = boids_updated == boids ? boids + num_boids : boids;
+        SimulationData data_tmp = data_current;
+        data_current = data_updated;
+        data_updated = data_tmp;
     }
 
-    free(boids);
+    boids_destroy(&data_current, &data_updated);
 
     CloseWindow();
 

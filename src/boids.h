@@ -1,6 +1,16 @@
 #pragma once
 
+#include "grid.h"
 #include "raylib.h"
+
+#define BOIDS_X_MIN -50.0f
+#define BOIDS_X_MAX 50.0f
+#define BOIDS_Y_MIN -50.0f
+#define BOIDS_Y_MAX 50.0f
+#define BOIDS_Z_MIN 200.0f
+#define BOIDS_Z_MAX 300.0f
+
+#define BOIDS_OMP_THREADS 4
 
 typedef struct {
     double turn_factor;
@@ -18,5 +28,12 @@ typedef struct {
     double dx, dy, dz;
 } Boid;
 
-void init_boids(Boid *boids, int num_boids, Params *params);
-void run_simulation(Boid boids[], Boid boids_updated[], Matrix *transforms, int num_boids, Params *params, double delta_time);
+typedef struct {
+    Boid *boids;
+    Grid grids[BOIDS_OMP_THREADS];
+} SimulationData;
+
+void boids_init(SimulationData *data, SimulationData *data_updated, int num_boids, Params *params);
+void boids_destroy(SimulationData *data, SimulationData *data_updated);
+void boids_run(SimulationData *data, SimulationData *data_updated, Matrix *transforms, int num_boids, Params *params, double delta_time);
+void boids_draw(Camera3D *camera, Mesh *mesh, Material *material, Matrix *transforms, int num_boids);
