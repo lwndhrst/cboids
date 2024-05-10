@@ -54,19 +54,19 @@ boids_destroy(SimulationData *data, SimulationData *data_updated)
 }
 
 void
-boids_compute_cell(GridCellNode *nearby_boid,
+boids_compute_cell(GridCell *cell,
                    Boid *boid,
                    Params *params,
                    Accumulator *accumulator)
 {
-    for (; nearby_boid != NULL; nearby_boid = nearby_boid->next)
+    for (GridCellNode *node = cell->head; node != NULL; node = node->next)
     {
-        if (nearby_boid->data == boid)
+        if (node->data == boid)
         {
             continue;
         }
 
-        Boid *other_boid = nearby_boid->data;
+        Boid *other_boid = node->data;
 
         // Compute differences in x, y and z coordinates
         double dx = boid->x - other_boid->x;
@@ -153,7 +153,7 @@ boids_run(SimulationData *data,
                     for (size_t k = key_min.k; k <= key_max.k; ++k)
                     {
                         GridCell *cell = grid_get_cell(&data->grids[t], (GridKey){i, j, k});
-                        boids_compute_cell(cell->head, boid, params, &accumulator);
+                        boids_compute_cell(cell, boid, params, &accumulator);
                     }
                 }
             }
