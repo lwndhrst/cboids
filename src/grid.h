@@ -18,9 +18,9 @@ typedef struct {
     double x_max, y_max, z_max;
     double cell_size;
 
-    size_t num_nodes;        // Stack size
-    GridCellNode *nodes;     // Stack for incrementally building lists per cell
-    GridCellNode *nodes_top; // Top of stack
+    size_t num_nodes;
+    GridCellNode *nodes;     // Arena for managing cell items
+    GridCellNode *nodes_top; // Next free location in the arena
 
     size_t num_cells;                             // Total number of cells in the grid
     size_t num_cells_i, num_cells_j, num_cells_k; // Number of cells in the grid per dimension
