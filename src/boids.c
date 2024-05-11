@@ -54,7 +54,7 @@ boids_destroy(SimulationData *data, SimulationData *data_updated)
 }
 
 void
-boids_compute_cell(GridCell *cell,
+boids_process_cell(GridCell *cell,
                    Boid *boid,
                    Params *params,
                    Accumulator *accumulator)
@@ -134,7 +134,7 @@ boids_run(SimulationData *data,
         // Zero all accumulator variables
         Accumulator accumulator = {0};
 
-        // Compute other boids that are potentially in range . . .
+        // Process other boids that are potentially in range . . .
         GridKey key_min = grid_get_key(&data->grids[thread_idx],
                                        boid->x - params->visual_range,
                                        boid->y - params->visual_range,
@@ -153,7 +153,7 @@ boids_run(SimulationData *data,
                     for (size_t k = key_min.k; k <= key_max.k; ++k)
                     {
                         GridCell *cell = grid_get_cell(&data->grids[t], (GridKey){i, j, k});
-                        boids_compute_cell(cell, boid, params, &accumulator);
+                        boids_process_cell(cell, boid, params, &accumulator);
                     }
                 }
             }
