@@ -5,7 +5,7 @@ set(CMAKE_GENERATOR "Unix Makefiles")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-    $<$<CONFIG:RELEASE>:-O2>
+    $<$<CONFIG:Release>:-O2>
 )
 
 find_package(OpenMP REQUIRED)
