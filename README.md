@@ -1,22 +1,14 @@
 # cboids
 
-Boids with C and Raylib. This is meant as a fun project to try out and learn a bunch of stuff.
+Boids with C and Raylib. Just for fun.
 
 https://github.com/lwndhrst/cboids/assets/22763666/07c8f99b-0e11-4702-8c24-8491558c1c0a
 
 ## Implemented
 
-- 3D boids
 - Instanced rendering
-- Spatial hash grid
-- Multi-threaded simulation loop with OpenMP
-
-## TODO
-
-- Allow changing number of boids at runtime?
-- AOS vs SOA?
-- Lighting?
-- Ditch Raylib for SDL + Vulkan?
+- Spatial grid
+- OpenMP
 
 ## 2D Boids Algorithm Pseudocode
 
